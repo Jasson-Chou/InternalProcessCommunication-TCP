@@ -49,5 +49,11 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\IPCLib\IPCLib.csproj">
+      <Project>{AD1033B5-7EFB-4E7F-B749-E520CBDC2F50}</Project>
+      <Name>IPCLib</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
