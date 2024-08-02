@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace InternalProcessCommunicationWithTCPDemo
@@ -13,30 +14,132 @@ namespace InternalProcessCommunicationWithTCPDemo
     {
         static TCPServer server;
         static List<TCPClient> myClient = new List<TCPClient>();
+
+        public const int TestCount = 4096;
         static void Main(string[] args)
         {
-            server = new TCPServer();
+            server = new TCPServer("TestServer");
+            int maxClient = 100;
+
             StartServer();
-            foreach (var num in Enumerable.Range(0, 10))
+            foreach (var num in Enumerable.Range(0, maxClient))
             {
                 StartClient("C-" + num).Wait();
             }
-            Console.ReadKey();
+            bool isRunning = true;
+            string folder = Path.Combine(Directory.GetCurrentDirectory(), "TestDatas");
+            if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+            string baseFileName = Path.Combine(folder, "Case");
+            double delayTime = 0.0d;
+            while (isRunning)
+            {
+                Console.WriteLine($"Press Number to Test{Environment.NewLine}" +
+                $"1. Case1{Environment.NewLine}" +
+                $"2. Case2{Environment.NewLine}" +
+                $"3. Case3{Environment.NewLine}" +
+                $"4. Case4{Environment.NewLine}" +
+                $"5. Case5{Environment.NewLine}" + 
+                $"Each Delay(ms): Delay Number => Delay 10.5 (unit:ms){Environment.NewLine}" + 
+                "X to Exit");
+                
+                var readLine = Console.ReadLine().Trim().ToUpper();
 
-            string fileName1 = @"C:\Case1.csv";
-            string fileName2 = @"C:\Case2.csv";
-            string fileName3 = @"C:\Case3.csv";
-            string fileName4 = @"C:\Case4.csv";
+                
 
-            Case1(fileName1);
-            Case2(fileName2);
-            Case3(fileName3);
-            Case4(fileName4);
+                switch (readLine)
+                {
+                    case "1":
+                        Case1(baseFileName + "1.csv", TimeSpan.FromMilliseconds(delayTime));
+                        break;
+                    case "2":
+                        Case2(baseFileName + "2.csv", TimeSpan.FromMilliseconds(delayTime));
+                        break;
+                    case "3":
+                        Case3(baseFileName + "3.csv", TimeSpan.FromMilliseconds(delayTime));
+                        break;
+                    case "4":
+                        Case4(baseFileName + "4.csv", TimeSpan.FromMilliseconds(delayTime));
+                        break;
+                    case "5":
+                        {
+                            do
+                            {
+                                Console.WriteLine($"Input Client Count:(1 ~ {maxClient})");
+                                Console.WriteLine($"Press X to Exit");
+                                var getNumStr = Console.ReadLine();
+                                if (int.TryParse(getNumStr, out int num))
+                                {
+                                    Case5(baseFileName + "5.csv", TimeSpan.FromMilliseconds(delayTime), num);
+                                    break;
+                                }
+                                else if(getNumStr.Trim().ToUpper() == "X")
+                                {
+                                    break;
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"Please Input Number:");
+                                    continue;
+                                }
+                            } while (true);
+                            break;
+                        }
+                    case "X":
+                        isRunning = false;
+                        break;
+
+                    default:
+                        Console.Clear();
+                        if (readLine.Contains("Delay".ToUpper()))
+                        {
+                            var delayStr = readLine.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)[1];
+
+                            if (double.TryParse(delayStr, out double delayValue))
+                            {
+                                delayTime = delayValue;
+
+                                Console.WriteLine($"Input Delay Success.(Input Value: {delayStr})");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Input Delay Fail.(Input Error: {delayStr})");
+                            }
+
+                            continue;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Input Error: {readLine}");
+                        }
+                        break;
+
+                }
+
+                
+                
+                
+                
+                
+            }
+
+            
 
             Console.ReadKey();
         }
 
-        static void Case1(string fileName)
+        static void Delay(TimeSpan delay)
+        {
+            var start = DateTime.Now;
+            var diff = DateTime.Now - start;
+
+            do
+            {
+                diff = DateTime.Now - start;
+            } while (diff < delay);
+            
+        }
+
+        static void Case1(string fileName, TimeSpan delay = default(TimeSpan))
         {
             var serClient = server.Clients.ElementAt(0);
             var tcpClient = myClient[0];
@@ -49,7 +152,7 @@ namespace InternalProcessCommunicationWithTCPDemo
             var getStr = tcpClient.Read();
 
             TimeSpan totalTime = TimeSpan.FromTicks(0);
-            for (int i = 0; i < 4096; i++)
+            for (int i = 0; i < TestCount; i++)
             {
                 randomString = GetRandomString(1024);
 
@@ -72,15 +175,18 @@ namespace InternalProcessCommunicationWithTCPDemo
                     Console.WriteLine($"[{i:D4}]Incorrect Spend Time: {watchTime.Ticks / 10.0d} us");
                     Console.ForegroundColor = temp;
                 }
-            }
 
+                if (delay != default(TimeSpan)) Delay(delay);
+                DrawTextProgressBar(i + 1, TestCount);
+            }
+            Console.WriteLine();
             Console.WriteLine($"Run Done Spend Time: {totalTime.TotalMilliseconds} ms");
 
             File.WriteAllText(fileName, sb.ToString());
             File.AppendAllText(fileName, $"Total Spend Time: {totalTime.TotalMilliseconds} ms");
         }
 
-        static void Case2(string fileName)
+        static void Case2(string fileName, TimeSpan delay = default(TimeSpan))
         {
             var serClient = server.Clients.ElementAt(0);
             var tcpClient = myClient[0];
@@ -93,7 +199,7 @@ namespace InternalProcessCommunicationWithTCPDemo
             var getStr = tcpClient.Read();
 
             TimeSpan totalTime = TimeSpan.FromTicks(0);
-            for (int i = 0; i < 4096; i++)
+            for (int i = 0; i < TestCount; i++)
             {
                 randomString = GetRandomString(1024);
 
@@ -116,15 +222,18 @@ namespace InternalProcessCommunicationWithTCPDemo
                     Console.WriteLine($"[{i:D4}]Incorrect Spend Time: {watchTime.Ticks / 10.0d} us");
                     Console.ForegroundColor = temp;
                 }
-            }
 
+                if (delay != default(TimeSpan)) Delay(delay);
+                DrawTextProgressBar(i + 1, TestCount);
+            }
+            Console.WriteLine();
             Console.WriteLine($"Run Done Spend Time: {totalTime.TotalMilliseconds} ms");
 
             File.WriteAllText(fileName, sb.ToString());
             File.AppendAllText(fileName, $"Total Spend Time: {totalTime.TotalMilliseconds} ms");
         }
 
-        static void Case3(string fileName)
+        static void Case3(string fileName, TimeSpan delay = default(TimeSpan))
         {
             var serClient = server.Clients.ElementAt(0);
             var tcpClient = myClient[0];
@@ -137,7 +246,7 @@ namespace InternalProcessCommunicationWithTCPDemo
             var getStr = tcpClient.Read();
 
             TimeSpan totalTime = TimeSpan.FromTicks(0);
-            for (int i = 0; i < 4096; i++)
+            for (int i = 0; i < TestCount; i++)
             {
                 randomString = GetRandomString(1024);
 
@@ -162,15 +271,19 @@ namespace InternalProcessCommunicationWithTCPDemo
                     Console.WriteLine($"[{i:D4}]Incorrect Spend Time: {watchTime.Ticks / 10.0d} us");
                     Console.ForegroundColor = temp;
                 }
-            }
 
+                if (delay != default(TimeSpan)) Delay(delay);
+                DrawTextProgressBar(i + 1, TestCount);
+
+            }
+            Console.WriteLine();
             Console.WriteLine($"Run Done Spend Time: {totalTime.TotalMilliseconds} ms");
 
             File.WriteAllText(fileName, sb.ToString());
             File.AppendAllText(fileName, $"Total Spend Time: {totalTime.TotalMilliseconds} ms");
         }
 
-        static void Case4(string fileName)
+        static void Case4(string fileName, TimeSpan delay = default(TimeSpan))
         {
             var serClient = server.Clients.ElementAt(0);
             var tcpClient = myClient[0];
@@ -183,7 +296,7 @@ namespace InternalProcessCommunicationWithTCPDemo
             var getStr = tcpClient.Read();
 
             TimeSpan totalTime = TimeSpan.FromTicks(0);
-            for (int i = 0; i < 4096; i++)
+            for (int i = 0; i < TestCount; i++)
             {
                 randomString = GetRandomString(1024);
 
@@ -208,17 +321,137 @@ namespace InternalProcessCommunicationWithTCPDemo
                     Console.WriteLine($"[{i:D4}]Incorrect Spend Time: {watchTime.Ticks / 10.0d} us");
                     Console.ForegroundColor = temp;
                 }
-            }
 
+                if (delay != default(TimeSpan)) Delay(delay);
+                DrawTextProgressBar(i + 1, TestCount);
+            }
+            Console.WriteLine();
             Console.WriteLine($"Run Done Spend Time: {totalTime.TotalMilliseconds} ms");
 
             File.WriteAllText(fileName, sb.ToString());
             File.AppendAllText(fileName, $"Total Spend Time: {totalTime.TotalMilliseconds} ms");
         }
 
+        static void Case5(string fileName, TimeSpan delay = default(TimeSpan), int clientCount = 1)
+        {
+
+            StringBuilder[] stringArr = new StringBuilder[clientCount];
+
+            TimeSpan[] totalTimes = new TimeSpan[clientCount];
+            var progressBaseTop = Console.CursorTop + 1;
+
+            KonsoleProgressManager progressManager = new KonsoleProgressManager(0, progressBaseTop);
+
+            for(int cIndex = 0; cIndex < clientCount; cIndex++)
+            {
+                progressManager.KonsoleProgressBars.Add(new KonsoleProgressBar($"Client {cIndex}"));
+            }
+
+            progressManager.Start();
+
+            
+            Parallel.For(0, clientCount, cIndex =>
+            {
+                var serClient = server.Clients.ElementAt(cIndex);
+                var tcpClient = myClient[cIndex];
+                stringArr[cIndex] = new StringBuilder(10 * 1024 * 1024);
+                StringBuilder sb = stringArr[cIndex];
+
+                var randomString = GetRandomString(1024);
+
+                serClient.Write(randomString);
+                var getStr = tcpClient.Read();
+
+                totalTimes[cIndex] = TimeSpan.FromTicks(0);
+
+                var progress = progressManager.KonsoleProgressBars[cIndex];
+
+                for (int i = 0; i < TestCount; i++)
+                {
+                    randomString = GetRandomString(1024);
+
+                    DateTime startTime = DateTime.Now;
+
+                    tcpClient.Write(randomString);
+                    var getStr1 = serClient.Read();
+                    serClient.Write(getStr1);
+                    var getStr2 = tcpClient.Read();
+
+                    TimeSpan watchTime = DateTime.Now - startTime;
+                    totalTimes[cIndex] += watchTime;
+                    if (getStr2 == randomString)
+                    {
+                        //Console.WriteLine($"[{i:D4}]Correct Spend Time: {watchTime.Ticks / 10.0d} us");
+                        LogTimeSpan(sb, i, watchTime);
+                    }
+                    else
+                    {
+                        var temp = Console.ForegroundColor;
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"[{i:D4}]Incorrect Spend Time: {watchTime.Ticks / 10.0d} us");
+                        Console.ForegroundColor = temp;
+                    }
+
+                    if (delay != default(TimeSpan)) Delay(delay);
+                    //DrawTextProgressBar($"Client{cIndex}", cIndex, i + 1, TestCount, progressBaseTop);
+                    progress.Update(i + 1, TestCount);
+                }
+            });
+
+            progressManager.Stop();
+
+            Thread.Sleep(100);
+
+            Console.WriteLine();
+
+            for (int cIndex = 0; cIndex < clientCount; cIndex++)
+            {
+                double ms = totalTimes[cIndex].TotalMilliseconds;
+                double avg = ms / TestCount;
+                Console.WriteLine($"Client[{cIndex}] Run Done Spend Time: {ms} ms, Avg: {avg} ms");
+                
+            }
+
+            string[][] logResults = new string[clientCount][];
+
+            StringBuilder logResultSB = new StringBuilder(1024 * (TestCount + 1));
+            
+
+            for(int cIndex = 0; cIndex < clientCount; cIndex++)
+            {
+                logResults[cIndex] = stringArr[cIndex].ToString().Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+
+                logResultSB.Append($"Client {cIndex}");
+
+                if (cIndex < clientCount - 1)
+                {
+                    logResultSB.Append(",");
+                }
+            }
+
+
+            logResultSB.AppendLine();
+            for (int i = 0; i < TestCount; i++)
+            {
+                for (int cIndex = 0; cIndex < clientCount; cIndex++)
+                {
+                    logResultSB.Append(logResults[cIndex][i]);
+
+                    if(cIndex < clientCount - 1)
+                    {
+                        logResultSB.Append(",");
+                    }
+                }
+
+                logResultSB.AppendLine();
+            }
+
+            File.WriteAllText(fileName, logResultSB.ToString());
+        }
+
         static void LogTimeSpan(StringBuilder sb, int index, TimeSpan ts)
         {
-            sb.AppendLine($"{index}, {ts.Ticks / 10.0d} us");
+            sb.AppendLine($"{ts.Ticks / 10.0d} us");
         }
 
         static void StartServer()
@@ -259,7 +492,7 @@ namespace InternalProcessCommunicationWithTCPDemo
         {
             foreach(var id in ids)
             {
-                var client = new TCPClient(id);
+                var client = new TCPClient(id, "TestServer");
                 bool result = await client.ConnectAsync();
                 if (result)
                 {
@@ -291,6 +524,39 @@ namespace InternalProcessCommunicationWithTCPDemo
                 builder.Append(str[next.Next(0, str.Length)]);
             }
             return builder.ToString();
+        }
+
+        static void DrawTextProgressBar(int progress, int total)
+        {
+            Console.CursorVisible = false;
+
+            
+            int percent = (int)((double)progress / total * 100);
+            
+            int barSize = 50;
+            int position = progress * barSize / total;
+            string bar = new string('#', position) + new string(' ', barSize - position);
+
+
+            Console.SetCursorPosition(0, Console.CursorTop);
+            Console.Write($"[{bar}] {percent}%");
+        }
+
+        static void DrawTextProgressBar(string name, int taskNumber, int progress, int total, int progressBarBasePosi)
+        {
+            Console.CursorVisible = false; // 隐藏光标
+
+            // 计算进度百分比
+            int percent = (int)((double)progress / total * 100);
+
+            // 构建进度条
+            int barSize = 50; // 进度条长度
+            int position = progress * barSize / total;
+            string bar = new string('#', position) + new string(' ', barSize - position);
+
+            // 输出进度条
+            Console.SetCursorPosition(0, progressBarBasePosi + taskNumber - 1); // 设置光标位置
+            Console.Write($"{name}: [{bar}] {percent}%");
         }
     }
 }

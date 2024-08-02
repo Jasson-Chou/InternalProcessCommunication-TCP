@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -16,22 +17,35 @@ namespace IPCLib.TCPIP
         public event Action<TCPClient> OnClientConnect = null;
         private const int MinPort = 49152;
         private const int MaxPort = 65535;
-        public TCPServer()
+        public TCPServer(string name)
         {
             Clients = new List<TCPClient>();
+            this.serverName = name;
         }
 
         public int Port { get; private set; }
         public List<TCPClient> Clients { get; }
 
-
+        private readonly string serverName;
 
         public async Task StartListener()
         {
             try
             {
                 IPAddress localAddr = IPAddress.Parse("127.0.0.1");
+
                 Port = await FindAvailablePortAsync();
+                var tempPath = IPCKeywords.PortNumberFileName(serverName);
+                var aceValue = AesEncryption.EncryptString(Port.ToString(), IPCKeywords.ACEKey);
+                var decryValue = AesEncryption.DecryptString(aceValue, IPCKeywords.ACEKey);
+                var fileFolder = Path.GetDirectoryName(tempPath);
+                if (!Directory.Exists(fileFolder))
+                {
+                    Directory.CreateDirectory(fileFolder);
+                }
+
+                File.WriteAllText(tempPath, aceValue);
+
                 server = new TcpListener(localAddr, Port);
                 server.Start();
 
@@ -43,21 +57,16 @@ namespace IPCLib.TCPIP
 
                     var tcpClient = new TCPClient(client);
 
-                    var assert = tcpClient.Read(10);
+                    var tryGetID = tcpClient.Read(10);
 
-                    if (string.Equals(assert, "127hostAssert"))
-                    {
-                        await tcpClient.WriteAsync("AssertOK");
-                    }
-                    else
+                    if(string.IsNullOrEmpty(tryGetID) || tryGetID.Length <= IPCKeywords.AskID.Length || !tryGetID.Contains(IPCKeywords.AskID))
                     {
                         tcpClient.Disconnect();
                         continue;
                     }
 
+                    await tcpClient.WriteAsync("OK");
 
-                    await tcpClient.WriteAsync(IPCKeywords.AskID);
-                    var tryGetID = tcpClient.Read();
                     var id = tryGetID.Remove(0, 3);
                     tcpClient.ID = id;
                     Trace.WriteLine($"Client: {id} connected!");
@@ -89,7 +98,6 @@ namespace IPCLib.TCPIP
 
         static async Task<int> FindAvailablePortAsync()
         {
-            // 方法 1: 使用動態端口範圍
             for (int port = MaxPort; port >= MinPort; port--)
             {
                 if (await IsPortAvailableAsync(port))
@@ -98,21 +106,18 @@ namespace IPCLib.TCPIP
                 }
             }
 
-            throw new Exception("沒有可用的端口");
+            throw new Exception("Not Found And Port Number");
         }
 
         static async Task<bool> IsPortAvailableAsync(int port)
         {
             try
             {
-                // 嘗試創建一個 TcpListener 並啟動它
                 IPAddress localAddr = IPAddress.Parse("127.0.0.1");
-
                 var testListener = new TcpListener(localAddr, port);
                 await Task.Run(() => testListener.Start());
                 testListener.Stop();
                 return true;
-                
             }
             catch
             {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
@@ -24,6 +25,7 @@ namespace IPCLib.TCPIP
         private const int MaxPort = 65535;
         public string ID { get; internal set; }
 
+        private readonly string serverName;
         internal TCPClient(TcpClient client)
         {
             this.client = client;
@@ -31,11 +33,12 @@ namespace IPCLib.TCPIP
             clientInstance = false;
         }
 
-        public TCPClient(string ID)
+        public TCPClient(string ID, string ServerName)
         {
             this.client = new TcpClient();
             clientInstance = true;
             this.ID = ID;
+            this.serverName = ServerName;
         }
 
         public async Task<bool> ConnectAsync()
@@ -44,38 +47,36 @@ namespace IPCLib.TCPIP
             {
                 if (!clientInstance) throw new Exception($"Server Can be not Connect Client!");
 
-                for(int port = MaxPort; port >= MinPort; port--)
+                try
                 {
-                    try
+                    var tempPath = IPCKeywords.PortNumberFileName(serverName);
+                    
+                    if (!File.Exists(tempPath)) return false;
+
+                    var portStr = File.ReadAllText(tempPath);
+                    var decryValue = AesEncryption.DecryptString(portStr, IPCKeywords.ACEKey);
+                    var parseResult = int.TryParse(decryValue, out int port);
+
+                    if (!parseResult) return false;
+
+                    await client.ConnectAsync("127.0.0.1", port);
+                    stream = client.GetStream();
+                    await WriteAsync(IPCKeywords.AskID + ID);
+                    var assert = Read(20);
+
+                    if (!string.Equals(assert, "OK"))
                     {
-                        await client.ConnectAsync("127.0.0.1", port);
-                        stream = client.GetStream();
-
-                        await WriteAsync("127hostAssert");
-
-                        var assert = Read(10);
-
-                        if (string.Equals(assert, "AssertOK"))
-                        {
-                            Disconnect();
-                            continue;
-                        }
+                        Disconnect();
+                        return false;
                     }
-                    catch(Exception e)
-                    {
-                        Trace.WriteLine(e.ToString());
-                        continue;
-                    }
-
-                    var cmd = Read();
-
-                    if (cmd == IPCKeywords.AskID)
-                    {
-                        await WriteAsync(IPCKeywords.AskID + ID);
-                    }
-
-                    return true;
                 }
+                catch (Exception e)
+                {
+                    Trace.WriteLine(e.ToString());
+                    return false;
+                }
+
+                return true;
             }
             catch (Exception e)
             {
@@ -90,9 +91,12 @@ namespace IPCLib.TCPIP
             try
             {
                 // 關閉流和客戶端
-                stream.Close();
-                client.Close();
-                Trace.WriteLine("Disconnected!");
+                if(client.Connected)
+                {
+                    stream.Close();
+                    client.Close();
+                    Trace.WriteLine("Disconnected!");
+                }
                 return true;
             }
             catch (Exception e)
