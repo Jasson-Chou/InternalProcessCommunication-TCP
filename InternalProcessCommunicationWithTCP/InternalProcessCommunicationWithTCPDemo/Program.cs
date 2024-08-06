@@ -1,4 +1,5 @@
 ﻿using IPCLib.TCPIP;
+using JcConsoleProgressBarLib;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,7 +15,7 @@ namespace InternalProcessCommunicationWithTCPDemo
     {
         static TCPServer server;
         static List<TCPClient> myClient = new List<TCPClient>();
-
+        static JcConsoleProgressBar ProgressBarInstance { get; set; }
         public const int TestCount = 4096;
         static void Main(string[] args)
         {
@@ -33,6 +34,8 @@ namespace InternalProcessCommunicationWithTCPDemo
             double delayTime = 0.0d;
             while (isRunning)
             {
+                ProgressBarInstance = new JcConsoleProgressBar();
+
                 Console.WriteLine($"Press Number to Test{Environment.NewLine}" +
                 $"1. Case1{Environment.NewLine}" +
                 $"2. Case2{Environment.NewLine}" +
@@ -177,7 +180,7 @@ namespace InternalProcessCommunicationWithTCPDemo
                 }
 
                 if (delay != default(TimeSpan)) Delay(delay);
-                DrawTextProgressBar(i + 1, TestCount);
+                DrawTextProgressBar(nameof(Case1), i + 1, TestCount);
             }
             Console.WriteLine();
             Console.WriteLine($"Run Done Spend Time: {totalTime.TotalMilliseconds} ms");
@@ -224,7 +227,7 @@ namespace InternalProcessCommunicationWithTCPDemo
                 }
 
                 if (delay != default(TimeSpan)) Delay(delay);
-                DrawTextProgressBar(i + 1, TestCount);
+                DrawTextProgressBar(nameof(Case2), i + 1, TestCount);
             }
             Console.WriteLine();
             Console.WriteLine($"Run Done Spend Time: {totalTime.TotalMilliseconds} ms");
@@ -273,7 +276,7 @@ namespace InternalProcessCommunicationWithTCPDemo
                 }
 
                 if (delay != default(TimeSpan)) Delay(delay);
-                DrawTextProgressBar(i + 1, TestCount);
+                DrawTextProgressBar(nameof(Case3), i + 1, TestCount);
 
             }
             Console.WriteLine();
@@ -323,7 +326,7 @@ namespace InternalProcessCommunicationWithTCPDemo
                 }
 
                 if (delay != default(TimeSpan)) Delay(delay);
-                DrawTextProgressBar(i + 1, TestCount);
+                DrawTextProgressBar(nameof(Case4), i + 1, TestCount);
             }
             Console.WriteLine();
             Console.WriteLine($"Run Done Spend Time: {totalTime.TotalMilliseconds} ms");
@@ -340,16 +343,28 @@ namespace InternalProcessCommunicationWithTCPDemo
             TimeSpan[] totalTimes = new TimeSpan[clientCount];
             var progressBaseTop = Console.CursorTop + 1;
 
-            KonsoleProgressManager progressManager = new KonsoleProgressManager(0, progressBaseTop);
+            JcConsoleProgressCollection progressCollection = new JcConsoleProgressCollection();
+
+            var CursorTop = Console.CursorTop;
 
             for(int cIndex = 0; cIndex < clientCount; cIndex++)
             {
-                progressManager.KonsoleProgressBars.Add(new KonsoleProgressBar($"Client {cIndex}"));
+                var progressBar = new JcConsoleProgressBar($"Client {cIndex}");
+                progressBar.ConsoleTop = CursorTop + cIndex;
+                progressBar.ConsoleLeft = 0;
+
+                progressCollection.Add(progressBar);
             }
 
-            progressManager.Start();
-
+            Timer FPSTimer = new Timer((state) =>
+            {
+                var progresses = state as JcConsoleProgressCollection;
+                progresses.ConsoleWriteAll();
+            }, 
+            progressCollection,
+            Timeout.Infinite, (int)(1.0d / 30));
             
+
             Parallel.For(0, clientCount, cIndex =>
             {
                 var serClient = server.Clients.ElementAt(cIndex);
@@ -364,7 +379,7 @@ namespace InternalProcessCommunicationWithTCPDemo
 
                 totalTimes[cIndex] = TimeSpan.FromTicks(0);
 
-                var progress = progressManager.KonsoleProgressBars[cIndex];
+                var progress = progressCollection[cIndex];
 
                 for (int i = 0; i < TestCount; i++)
                 {
@@ -398,18 +413,18 @@ namespace InternalProcessCommunicationWithTCPDemo
                 }
             });
 
-            progressManager.Stop();
+            FPSTimer.Dispose();
 
-            Thread.Sleep(100);
+            progressCollection.ConsoleWriteAll();
 
-            Console.WriteLine();
+            Console.CursorTop = CursorTop + clientCount;
+            Console.CursorLeft = 0;
 
             for (int cIndex = 0; cIndex < clientCount; cIndex++)
             {
                 double ms = totalTimes[cIndex].TotalMilliseconds;
                 double avg = ms / TestCount;
                 Console.WriteLine($"Client[{cIndex}] Run Done Spend Time: {ms} ms, Avg: {avg} ms");
-                
             }
 
             string[][] logResults = new string[clientCount][];
@@ -526,37 +541,13 @@ namespace InternalProcessCommunicationWithTCPDemo
             return builder.ToString();
         }
 
-        static void DrawTextProgressBar(int progress, int total)
+        static void DrawTextProgressBar(string header, int progress, int total)
         {
-            Console.CursorVisible = false;
-
-            
-            int percent = (int)((double)progress / total * 100);
-            
-            int barSize = 50;
-            int position = progress * barSize / total;
-            string bar = new string('#', position) + new string(' ', barSize - position);
-
-
-            Console.SetCursorPosition(0, Console.CursorTop);
-            Console.Write($"[{bar}] {percent}%");
+            ProgressBarInstance.Header = header;
+            ProgressBarInstance.Update(progress, total);
+            var progressStr = ProgressBarInstance.ConsoleWrite();
+            Trace.WriteLine(progressStr);
         }
 
-        static void DrawTextProgressBar(string name, int taskNumber, int progress, int total, int progressBarBasePosi)
-        {
-            Console.CursorVisible = false; // 隐藏光标
-
-            // 计算进度百分比
-            int percent = (int)((double)progress / total * 100);
-
-            // 构建进度条
-            int barSize = 50; // 进度条长度
-            int position = progress * barSize / total;
-            string bar = new string('#', position) + new string(' ', barSize - position);
-
-            // 输出进度条
-            Console.SetCursorPosition(0, progressBarBasePosi + taskNumber - 1); // 设置光标位置
-            Console.Write($"{name}: [{bar}] {percent}%");
-        }
     }
 }
