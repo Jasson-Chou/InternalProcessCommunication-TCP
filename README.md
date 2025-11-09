@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Internal Process Communication with TCP
 
 Github: https://github.com/Jasson-Chou/InternalProcessCommunication-TCP
@@ -21,42 +20,18 @@ This project demonstrates using local TCP to communicate between multiple proces
 
 1. Open the solution `InternalProcessCommunicationWithTCP.sln` in Visual Studio.
 2. Set the startup project to `InternalProcessCommunicationWithTCPDemo`.
-=======
-[README_en.md](https://github.com/user-attachments/files/23437584/README_en.md)
-# InternalProcessCommunicationWithTCP
-
-## Overview
-This project demonstrates using local TCP to communicate between multiple processes/instances on the same host. It includes a lightweight IPC library `IPCLib` (with `TCPServer`, `TCPClient`, AES encryption, etc.) and a sample application `InternalProcessCommunicationWithTCPDemo` for testing and measuring communication performance and correctness.
-
-## Project Structure
-- `IPCLib`: Core library providing `TCPServer`, `TCPClient`, and related utilities (e.g. `AesEncryption`, `IPCKeywords`).
-- `InternalProcessCommunicationWithTCPDemo`: Sample application containing several test cases (Case1~Case5) to exercise different communication flows and performance measurements.
-
-## Requirements
-- .NET Framework4.6.1
-- C#7.3
-
-## Build & Run
-1. Open the solution `InternalProcessCommunicationWithTCP.sln` in Visual Studio.
-2. Set the startup project to `InternalProcessCommunicationWithTCPDemo`.
->>>>>>> b3f767c5e79ba011caee0ac2699289f07172adfd
 3. Build and run.
 
 When the program starts it creates a TCP server (using an available port) and starts multiple sample clients. Use the console interface to choose different test cases.
 
-<<<<<<< HEAD
 ### **Test Cases**
 
-=======
-## Test Cases
->>>>>>> b3f767c5e79ba011caee0ac2699289f07172adfd
 - Case1: Server sends string -> Client reads (single RTT measurement).
 - Case2: Client sends string -> Server reads (single RTT measurement).
 - Case3: Server -> Client -> Server (round-trip) measuring full cycle time.
 - Case4: Client -> Server -> Client (round-trip) measuring full cycle time.
 - Case5: Multiple clients run concurrently for parallel testing of latency and averages.
 
-<<<<<<< HEAD
 Each case runs multiple iterations (default `TestCount =4096`) and logs per-iteration durations into CSV files placed under the `TestDatas` folder (default filenames `CaseN.csv`).
 
 ### **Console Interface**
@@ -85,25 +60,3 @@ Each case runs multiple iterations (default `TestCount =4096`) and logs per-ite
 ### **Trouble shooting**
 
 - The first test has a chance of failure; currently actively searching for the issue
-=======
-Each case runs multiple iterations (default `TestCount =4096`) and logs per-iteration durations into CSV files placed under the `TestDatas` folder (default filenames `CaseN.csv`).
-
-## Console Interface
-- After launch the console shows options and settings:
- - Input `1`~`5` to run the corresponding case.
- - Set `Delay` in milliseconds using the format e.g. `Delay10.5` to add a specified pause between iterations.
- - Case5 accepts a client count parameter (range1~100 by default, controlled by `maxClient`).
-
-## Output Files
-- Test results are written to a `TestDatas` folder under the working directory. Files are named `Case1.csv`, `Case2.csv`, etc., containing per-iteration durations (microseconds) and total duration statistics.
-
-## Notes & Best Practices
-- The sample uses blocking read/write and simple synchronization (with some use of `Parallel.For`) to simulate communication. For production use consider asynchronous IO, robust error handling, and connection retry logic to improve resilience.
-- High values for `TestCount` or client count may saturate system resources�Xadjust according to your machine.
-- To communicate between different hosts, ensure firewall and port configuration allow connections.
-
-## Extensions / Suggestions
-- Add more comprehensive error handling and logging in `IPCLib`.
-- Convert synchronous tests to asynchronous `async/await` flows to measure real async behavior.
-- Expose configurable ports and encryption options, and add unit tests to validate communication correctness.
->>>>>>> b3f767c5e79ba011caee0ac2699289f07172adfd
