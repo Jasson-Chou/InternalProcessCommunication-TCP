@@ -34,6 +34,20 @@ When the program starts it creates a TCP server (using an available port) and st
 
 Each case runs multiple iterations (default `TestCount =4096`) and logs per-iteration durations into CSV files placed under the `TestDatas` folder (default filenames `CaseN.csv`).
 
+### **Usage Examples**
+
+After running the program, options for selecting test cases will be displayed. Once selected, execution will begin.
+
+![select case 1 ~ 5](DemoSrc/image.png)
+
+select case 1 ~ 5
+
+After running Case 1, the execution progress will be displayed above, and the total execution time will be printed upon completion.
+
+![example case.1](DemoSrc/image%201.png)
+
+example case.1
+
 ### **Console Interface**
 
 - After launch the console shows options and settings:
