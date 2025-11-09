@@ -62,7 +62,7 @@ example case.1
 ### **Notes & Best Practices**
 
 - The sample uses blocking read/write and simple synchronization (with some use of `Parallel.For`) to simulate communication. For production use consider asynchronous IO, robust error handling, and connection retry logic to improve resilience.
-- High values for `TestCount` or client count may saturate system resources�Xadjust according to your machine.
+- High values for `TestCount` or client count may saturate system resources—adjust according to your machine.
 - To communicate between different hosts, ensure firewall and port configuration allow connections.
 
 ### **Extensions / Suggestions**
