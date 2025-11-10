@@ -62,7 +62,7 @@ namespace IPCLib.TCPIP
                     await client.ConnectAsync("127.0.0.1", port);
                     stream = client.GetStream();
                     await WriteAsync(IPCKeywords.AskID + ID);
-                    var assert = Read(20);
+                    var assert = Read(200);
 
                     if (!string.Equals(assert, "OK"))
                     {
@@ -95,6 +95,8 @@ namespace IPCLib.TCPIP
                 {
                     stream.Close();
                     client.Close();
+                    if (clientInstance)
+                        client = new TcpClient();
                     Trace.WriteLine("Disconnected!");
                 }
                 return true;
@@ -172,9 +174,15 @@ namespace IPCLib.TCPIP
             try
             {
                 readCancelTokenSrc = new CancellationTokenSource();
-                while (true)
+                while (client.Connected)
                 {
                     bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, readCancelTokenSrc.Token);
+
+                    if(bytesRead == 0)
+                    {
+                        Trace.WriteLine($"client[{ID}] Disconnected.");
+                        break;
+                    }
 
                     string data = Encoding.ASCII.GetString(buffer, 0, bytesRead);
                     

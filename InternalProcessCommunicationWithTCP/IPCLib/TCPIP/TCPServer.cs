@@ -23,6 +23,7 @@ namespace IPCLib.TCPIP
             this.serverName = name;
         }
 
+        public bool Created { get; private set; }
         public int Port { get; private set; }
         public List<TCPClient> Clients { get; }
 
@@ -51,13 +52,17 @@ namespace IPCLib.TCPIP
 
                 Trace.WriteLine($"Create Listener Port: {Port}");
 
+                Created = true;
+
+                
+
                 while (true)
                 {
                     var client = await server.AcceptTcpClientAsync();
 
                     var tcpClient = new TCPClient(client);
 
-                    var tryGetID = tcpClient.Read(10);
+                    var tryGetID = tcpClient.Read(100);
 
                     if(string.IsNullOrEmpty(tryGetID) || tryGetID.Length <= IPCKeywords.AskID.Length || !tryGetID.Contains(IPCKeywords.AskID))
                     {
@@ -84,7 +89,7 @@ namespace IPCLib.TCPIP
             }
             finally
             {
-
+                Created = false;
             }
         }
 

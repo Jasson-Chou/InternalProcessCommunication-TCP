@@ -32,6 +32,7 @@ namespace InternalProcessCommunicationWithTCPDemo
             if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
             string baseFileName = Path.Combine(folder, "Case");
             double delayTime = 0.0d;
+            
             while (isRunning)
             {
                 ProgressBarInstance = new JcConsoleProgressBar();
@@ -473,7 +474,7 @@ namespace InternalProcessCommunicationWithTCPDemo
         {
             server.OnClientConnect += Server_OnClientConnect;
             var lister = server.StartListener();
-            
+            while (!server.Created) Thread.Sleep(1000);
         }
 
         static void StopServer()
