@@ -74,3 +74,4 @@ example case.1
 ### **Trouble shooting**
 
 - The first test has a chance of failure; currently actively searching for the issue
+- Currently the Progressbar positioning in the Console is abnormal; please ignore this issue for now
