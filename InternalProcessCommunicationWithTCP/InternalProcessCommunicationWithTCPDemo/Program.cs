@@ -6,8 +6,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace InternalProcessCommunicationWithTCPDemo
 {
@@ -16,7 +16,7 @@ namespace InternalProcessCommunicationWithTCPDemo
         static TCPServer server;
         static List<TCPClient> myClient = new List<TCPClient>();
         static JcConsoleProgressBar ProgressBarInstance { get; set; }
-        public const int TestCount = 4096;
+        public const int TestCount = 4096 * 10;
         static void Main(string[] args)
         {
             server = new TCPServer("TestServer");
@@ -31,7 +31,7 @@ namespace InternalProcessCommunicationWithTCPDemo
             string folder = Path.Combine(Directory.GetCurrentDirectory(), "TestDatas");
             if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
             string baseFileName = Path.Combine(folder, "Case");
-            double delayTime = 0.0d;
+            double delayTime = 5.0d;
             
             while (isRunning)
             {
@@ -47,7 +47,7 @@ namespace InternalProcessCommunicationWithTCPDemo
                 "X to Exit");
                 
                 var readLine = Console.ReadLine().Trim().ToUpper();
-
+                Console.Clear();
                 
 
                 switch (readLine)
@@ -340,14 +340,16 @@ namespace InternalProcessCommunicationWithTCPDemo
         {
 
             StringBuilder[] stringArr = new StringBuilder[clientCount];
-
+            bool isComplete = false;
             TimeSpan[] totalTimes = new TimeSpan[clientCount];
             var progressBaseTop = Console.CursorTop + 1;
 
+            JcConsoleProgressBar.DisableQuickEdit();
             JcConsoleProgressCollection progressCollection = new JcConsoleProgressCollection();
 
             var CursorTop = Console.CursorTop;
 
+            // Setup Progress Bars
             for(int cIndex = 0; cIndex < clientCount; cIndex++)
             {
                 var progressBar = new JcConsoleProgressBar($"Client {cIndex}");
@@ -357,14 +359,15 @@ namespace InternalProcessCommunicationWithTCPDemo
                 progressCollection.Add(progressBar);
             }
 
-            Timer FPSTimer = new Timer((state) =>
+            Timer FPSTimer = new Timer(1000.0d / 30);
+            FPSTimer.AutoReset = false;
+            FPSTimer.Elapsed += (s, e) =>
             {
-                var progresses = state as JcConsoleProgressCollection;
-                progresses.ConsoleWriteAll();
-            }, 
-            progressCollection,
-            Timeout.Infinite, (int)(1.0d / 30));
-            
+                progressCollection.ConsoleWrite();
+                if(!isComplete)
+                    FPSTimer.Start();
+            };
+            FPSTimer.Start();
 
             Parallel.For(0, clientCount, cIndex =>
             {
@@ -413,13 +416,12 @@ namespace InternalProcessCommunicationWithTCPDemo
                     progress.Update(i + 1, TestCount);
                 }
             });
-
-            FPSTimer.Dispose();
-
-            progressCollection.ConsoleWriteAll();
-
-            Console.CursorTop = CursorTop + clientCount;
-            Console.CursorLeft = 0;
+            
+            isComplete = true;
+            
+            while (FPSTimer.Enabled) System.Threading.Thread.Sleep(50);
+            
+            progressCollection.ConsoleWrite();
 
             for (int cIndex = 0; cIndex < clientCount; cIndex++)
             {
@@ -463,6 +465,9 @@ namespace InternalProcessCommunicationWithTCPDemo
             }
 
             File.WriteAllText(fileName, logResultSB.ToString());
+
+            if (!JcConsoleProgressBar.IsQuickEditEnabled())
+                JcConsoleProgressBar.EnableQuickEdit();
         }
 
         static void LogTimeSpan(StringBuilder sb, int index, TimeSpan ts)
@@ -474,7 +479,7 @@ namespace InternalProcessCommunicationWithTCPDemo
         {
             server.OnClientConnect += Server_OnClientConnect;
             var lister = server.StartListener();
-            while (!server.Created) Thread.Sleep(1000);
+            while (!server.Created) System.Threading.Thread.Sleep(1000);
         }
 
         static void StopServer()
